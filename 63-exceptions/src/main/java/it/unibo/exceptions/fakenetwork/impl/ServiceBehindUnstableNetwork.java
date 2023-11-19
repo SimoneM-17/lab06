@@ -25,12 +25,16 @@ public final class ServiceBehindUnstableNetwork implements NetworkComponent {
      * @param failProbability the probability that a network communication fails
      * @param randomSeed random generator seed for reproducibility
      */
-    public ServiceBehindUnstableNetwork(final double failProbability, final int randomSeed) {
+    public ServiceBehindUnstableNetwork(final double failProbability, final int randomSeed) throws IllegalArgumentException {
         /*
          * The probability should be in [0, 1[!
          */
-        this.failProbability = failProbability;
-        randomGenerator = new Random(randomSeed);
+        if (failProbability >= 0 && failProbability < 1) {
+            this.failProbability = failProbability;
+            randomGenerator = new Random(randomSeed);
+        } else {
+            throw new IllegalArgumentException("The probability should be in [0, 1[");
+        }
     }
 
     /**
@@ -55,8 +59,10 @@ public final class ServiceBehindUnstableNetwork implements NetworkComponent {
             commandQueue.add(data);
         } else {
             final var message = data + " is not a valid keyword (allowed: " + KEYWORDS + "), nor is a number";
-            System.out.println(message);
             commandQueue.clear();
+            throw new IllegalArgumentException(message, exceptionWhenParsedAsNumber);
+
+            // IllegalArgumentException cause: NumberFormatException
             /*
              * This method, in this point, should throw an IllegalStateException.
              * Its cause, however, is the previous NumberFormatException.
@@ -79,7 +85,7 @@ public final class ServiceBehindUnstableNetwork implements NetworkComponent {
 
     private void accessTheNetwork(final String message) throws IOException {
         if (randomGenerator.nextDouble() < failProbability) {
-            throw new IOException("Generic I/O error");
+            throw new NetworkException(message);
         }
     }
 
