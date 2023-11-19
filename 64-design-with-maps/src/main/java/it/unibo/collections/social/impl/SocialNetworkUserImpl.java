@@ -36,7 +36,9 @@ public final class SocialNetworkUserImpl<U extends User> extends UserImpl implem
      * In order to save the people followed by a user organized in groups, adopt
      * a generic-type Map:  think of what type of keys and values would best suit the requirements
      */
-
+    Map<String, Set<U>> followedUsers = new HashMap<>();
+    private static final boolean USER_ALREADY_FOLLOWED = false;
+    private static final boolean USER_FOLLOWED_SUCCESSFULLY = true;
     /*
      * [CONSTRUCTORS]
      *
@@ -62,13 +64,15 @@ public final class SocialNetworkUserImpl<U extends User> extends UserImpl implem
      *            application
      */
     public SocialNetworkUserImpl(final String name, final String surname, final String user, final int userAge) {
-        super(null, null, null, 0);
+        super(name, surname, user, userAge);
     }
 
     /*
      * 2) Define a further constructor where the age defaults to -1
      */
-
+    public SocialNetworkUserImpl(final String name, final String surname, final String user) {
+        super(name, surname, user);
+    }
     /*
      * [METHODS]
      *
@@ -76,7 +80,27 @@ public final class SocialNetworkUserImpl<U extends User> extends UserImpl implem
      */
     @Override
     public boolean addFollowedUser(final String circle, final U user) {
-        return false;
+        if (!isFollowed(user)) {
+            if (isGroupNew(circle)) {
+                addGroup(circle);
+                followedUsers.get(circle).add(user);
+                return USER_FOLLOWED_SUCCESSFULLY;
+            } else {
+                this.followedUsers.get(circle).add(user);
+                return USER_FOLLOWED_SUCCESSFULLY;
+            }
+        } else {
+            return USER_ALREADY_FOLLOWED;
+        }
+
+        /*
+        Set<U> group = this.followedUsers.get(circle);
+            if (group == null) {
+                group = new HashSet<>();
+                followedUsers.put(circle, group);
+            }
+        return group.add(user);
+        */
     }
 
     /**
@@ -86,11 +110,56 @@ public final class SocialNetworkUserImpl<U extends User> extends UserImpl implem
      */
     @Override
     public Collection<U> getFollowedUsersInGroup(final String groupName) {
-        return null;
+        if (isGroupNew(groupName)) {
+            return Collections.emptyList();
+        } else {
+            return new HashSet<>(this.followedUsers.get(groupName));
+        }
     }
 
     @Override
     public List<U> getFollowedUsers() {
-        return null;
+        final List<U> allFollowedUsers = new ArrayList<U>();
+        for (var group : this.followedUsers.values()) {
+            allFollowedUsers.addAll(group);
+        }
+        return allFollowedUsers;
+    }
+
+    /**
+     * checks if the given user is already followed
+     * 
+     * @return
+     *          true if user is already followed, false otherwise
+     */
+    private boolean isFollowed(final U user) {
+        for (var group : this.followedUsers.values()) {
+            if (group.contains(user)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * checks if the given group already exists
+     * 
+     * @return
+     *      true if the group does not exist, false otherwise
+     */
+    private boolean isGroupNew(final String group) {
+        return !this.followedUsers.containsKey(group);
+    }
+
+    /**
+     * adds a new entry in followedUsers where the key is the
+     * given group name and the value is a new Set of the group
+     * 
+     * @param group
+     * @return
+     *      a Set of the group's followed users associated to the key
+     */
+    private void addGroup(final String group) {
+        this.followedUsers.put(group, new HashSet<U>());
     }
 }
